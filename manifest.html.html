@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menedżer Monet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .folder-select {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Menedżer Monet</h1>
+
+        <!-- Folder Management -->
+        <div class="form-group">
+            <label for="folder-name">Nazwa Folderu</label>
+            <input type="text" id="folder-name" placeholder="Wprowadź nazwę folderu">
+        </div>
+        <button onclick="addFolder()">Dodaj Folder</button>
+        
+        <div class="form-group folder-select">
+            <label for="folder-select">Wybierz Folder</label>
+            <select id="folder-select" onchange="displayCoins()"></select>
+        </div>
+        
+        <!-- Form to Add/Edit Coins -->
+        <div class="form-group">
+            <label for="coin-name">Nazwa Monety</label>
+            <input type="text" id="coin-name" placeholder="Wprowadź nazwę monety">
+        </div>
+        <div class="form-group">
+            <label for="coin-price">Cena Zakupu (zł)</label>
+            <input type="number" id="coin-price" placeholder="Wprowadź cenę zakupu">
+        </div>
+        <div class="form-group">
+            <label for="coin-location">Gdzie Kupiono</label>
+            <input type="text" id="coin-location" placeholder="Wprowadź miejsce zakupu">
+        </div>
+        <div class="form-group">
+            <label for="coin-quantity">Ilość</label>
+            <input type="number" id="coin-quantity" placeholder="Wprowadź ilość">
+        </div>
+        <div class="form-group">
+            <label for="coin-material">Materiał</label>
+            <select id="coin-material">
+                <option value="Złoto">Złoto</option>
+                <option value="Srebro">Srebro</option>
+                <option value="Miedź">Miedź</option>
+                <option value="Platyna">Platyna</option>
+            </select>
+        </div>
+        <button onclick="addCoin()">Dodaj Monetę</button>
+        
+        <!-- Search and Sort -->
+        <div class="form-group">
+            <label for="search">Szukaj Monety</label>
+            <input type="text" id="search" placeholder="Wprowadź nazwę monety" oninput="displayCoins()">
+        </div>
+        
+        <div class="form-group">
+            <label for="sort-select">Sortuj Według</label>
+            <select id="sort-select" onchange="displayCoins()">
+                <option value="name">Nazwa</option>
+                <option value="price">Cena</option>
+                <option value="quantity">Ilość</option>
+            </select>
+        </div>
+        
+        <!-- Coin List Table -->
+        <table id="coin-table">
+            <thead>
+                <tr>
+                    <th>Nazwa Monety</th>
+                    <th>Cena Zakupu (zł)</th>
+                    <th>Gdzie Kupiono</th>
+                    <th>Ilość</th>
+                    <th>Materiał</th>
+                    <th>Akcje</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        let folders = JSON.parse(localStorage.getItem('folders')) || [];
+        let coins = JSON.parse(localStorage.getItem('coins')) || [];
+
+        function addFolder() {
+            const folderName = document.getElementById('folder-name').value;
+            if (folderName) {
+                folders.push(folderName);
+                localStorage.setItem('folders', JSON.stringify(folders));
+                updateFolderSelect();
+                document.getElementById('folder-name').value = '';
+            } else {
+                alert('Proszę wprowadzić nazwę folderu.');
+            }
+        }
+
+        function updateFolderSelect() {
+            const folderSelect = document.getElementById('folder-select');
+            folderSelect.innerHTML = '';
+            folders.forEach(folder => {
+                const option = document.createElement('option');
+                option.value = folder;
+                option.text = folder;
+                folderSelect.appendChild(option);
+            });
+            displayCoins();  // Refresh coins when folders are updated
+        }
+
+        function addCoin() {
+            const folder = document.getElementById('folder-select').value;
+            const name = document.getElementById('coin-name').value;
+            const price = document.getElementById('coin-price').value;
+            const location = document.getElementById('coin-location').value;
+            const quantity = document.getElementById('coin-quantity').value;
+            const material = document.getElementById('coin-material').value;
+
+            if (folder && name && price && location && quantity && material) {
+                const newCoin = { folder, name, price: parseFloat(price), location, quantity: parseInt(quantity), material };
+                coins.push(newCoin);
+                localStorage.setItem('coins', JSON.stringify(coins));
+                displayCoins();
+                clearForm();
+            } else {
+                alert('Proszę wypełnić wszystkie pola.');
+            }
+        }
+
+        function displayCoins() {
+            const folder = document.getElementById('folder-select').value;
+            const tableBody = document.querySelector('#coin-table tbody');
+            const searchQuery = document.getElementById('search').value.toLowerCase();
+            const sortBy = document.getElementById('sort-select').value;
+
+            tableBody.innerHTML = '';
+            const filteredCoins = coins.filter(coin => coin.folder === folder && coin.name.toLowerCase().includes(searchQuery));
+
+            // Sort the filtered coins
+            filteredCoins.sort((a, b) => {
+                if (sortBy === 'name') {
+                    return a.name.localeCompare(b.name);
+                } else if (sortBy === 'price') {
+                    return a.price - b.price;
+                } else if (sortBy === 'quantity') {
+                    return a.quantity - b.quantity;
+                }
+                return 0;
+            });
+
+            filteredCoins.forEach((coin, index) => {
+                const row = `<tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td>
+                        <button onclick="editCoin()">Edytuj</button>
+                        <button onclick="deleteCoin()">Usuń</button>
+                    </td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        function deleteCoin(index) {
+            coins.splice(index, 1);
+            localStorage.setItem('coins', JSON.stringify(coins));
+            displayCoins();
+        }
+
+        function editCoin(index) {
+            const coin = coins[index];
+            document.getElementById('coin-name').value = coin.name;
+            document.getElementById('coin-price').value = coin.price;
+            document.getElementById('coin-location').value = coin.location;
+            document.getElementById('coin-quantity').value = coin.quantity;
+            document.getElementById('coin-material').value = coin.material;
+            document.getElementById('folder-select').value = coin.folder;
+
+            deleteCoin(index);
+        }
+
+        function clearForm() {
+            document.getElementById('coin-name').value = '';
+            document.getElementById('coin-price').value = '';
+            document.getElementById('coin-location').value = '';
+            document.getElementById('coin-quantity').value = '';
+        }
+
+        window.onload = function() {
+            updateFolderSelect();
+            displayCoins();
+        };
+    </script>
+
+</
+<!-- Add Delete Folder and Reset Memory buttons -->
+<button onclick="deleteFolder()">Usuń Folder</button>
+<button onclick="resetMemory()">Zresetuj Pamięć</button>
+
+<script>
+    // Function to delete selected folder and all its coins
+    function deleteFolder() {
+        const folderSelect = document.getElementById('folder-select');
+        const folder = folderSelect.value;
+
+        if (folder) {
+            if (confirm(`Czy na pewno chcesz usunąć folder "" i wszystkie jego monety?`)) {
+                // Remove folder
+                folders = folders.filter(f => f !== folder);
+                localStorage.setItem('folders', JSON.stringify(folders));
+
+                // Remove all coins in the folder
+                coins = coins.filter(coin => coin.folder !== folder);
+                localStorage.setItem('coins', JSON.stringify(coins));
+
+                updateFolderSelect();
+                displayCoins();
+            }
+        } else {
+            alert('Proszę wybrać folder do usunięcia.');
+        }
+    }
+
+    // Function to reset localStorage (clear all data)
+    function resetMemory() {
+        if (confirm('Czy na pewno chcesz zresetować wszystkie dane? Tej operacji nie można cofnąć.')) {
+            localStorage.clear();
+            folders = [];
+            coins = [];
+            updateFolderSelect();
+            displayCoins();
+        }
+    }
+
+    // Ensure the functions update UI accordingly
+    window.onload = function() {
+        updateFolderSelect();
+        displayCoins();
+    };
+</script>
